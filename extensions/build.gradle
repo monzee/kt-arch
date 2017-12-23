@@ -1,0 +1,96 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'maven-publish'
+
+group = 'ph.codeia.kt-arch'
+version = '0.1.0'
+
+android {
+    compileSdkVersion 26
+    defaultConfig {
+        minSdkVersion 14
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+    implementation 'android.arch.lifecycle:extensions:1.0.0'
+}
+
+static def node(Closure c) {
+    c.resolveStrategy = Closure.DELEGATE_FIRST
+    c
+}
+
+publishing {
+    android.libraryVariants.matching { it.buildType.name == 'release' }.all {
+        def stem = name.capitalize()
+        def hardDeps = variantData.variantDependency.apiElements.allDependencies
+        def allDeps = variantData.variantDependency.runtimeElements.allDependencies
+
+        publications.create(name, MavenPublication) {
+            artifact source: outputs[0].outputFile, builtBy: assemble
+
+            artifact task("jar${stem}Sources", type: Jar, group: 'publishing') {
+                classifier 'sources'
+                from javaCompile.source
+            }
+
+            pom.withXml {
+                def contents = asNode().children().last()
+                contents + node {
+                    name 'Android Arch Kotlin Extensions'
+                    description 'Kotlin extensions for Android architecture components'
+                    url 'https://github.com/monzee/kt-arch'
+                    developers {
+                        developer {
+                            id 'monzee'
+                            name 'Mon Zafra'
+                            email 'mz@codeia.ph'
+                            organization 'Codeia Inc'
+                            organizationUrl 'https://codeia.ph'
+                        }
+                    }
+
+                    licenses {
+                        license {
+                            name 'MIT License'
+                            url 'https://mit-license.org/license.txt'
+                            distribution 'repo'
+                        }
+                    }
+
+                    scm {
+                        url 'https://github.com/monzee/kt-arch'
+                        connection 'scm:git:https://github.com/monzee/kt-arch.git'
+                        developerConnection 'scm:git:ssh://git@github.com:monzee/kt-arch.git'
+                    }
+
+                    dependencies {
+                        allDeps.each { dep ->
+                            dependency {
+                                groupId dep.group
+                                artifactId dep.name
+                                version dep.version
+                                if (!(dep in hardDeps)) {
+                                    scope 'provided'
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
