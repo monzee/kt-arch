@@ -20,17 +20,17 @@ inline fun <reified T : ViewModel> Fragment.viewModel(): T =
         ViewModelProviders.of(this)[T::class.java]
 
 
-inline fun <reified T : ViewModel> FragmentActivity.viewModel(crossinline factory: () -> T): T {
+inline fun <reified T : ViewModel> FragmentActivity.viewModel(noinline factory: () -> T): T {
     return ViewModelProviders.of(this, make(factory))[T::class.java]
 }
 
 
-inline fun <reified T : ViewModel> Fragment.viewModel(crossinline factory: () -> T): T {
+inline fun <reified T : ViewModel> Fragment.viewModel(noinline factory: () -> T): T {
     return ViewModelProviders.of(this, make(factory))[T::class.java]
 }
 
 
-inline fun make(crossinline block: () -> Any) = object : ViewModelProvider.Factory {
+fun make(block: () -> Any) = object : ViewModelProvider.Factory {
     override fun <T : ViewModel?> create(modelClass: Class<T>): T {
         return modelClass.cast(block())
     }

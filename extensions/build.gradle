@@ -3,7 +3,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'maven-publish'
 
 group = 'ph.codeia.kt-arch'
-version = '0.1.0'
+version = '0.2.0'
 
 android {
     compileSdkVersion 26
@@ -23,16 +23,24 @@ android {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'android.arch.lifecycle:extensions:1.0.0'
 }
 
-static def node(Closure c) {
+def node(Closure c) {
     c.resolveStrategy = Closure.DELEGATE_FIRST
     c
 }
 
 publishing {
+    repositories.maven {
+        name 'bintray'
+        url 'https://api.bintray.com/maven/monzee/jvm/kt-arch/'
+        credentials {
+            username = BINTRAY_USER
+            password = BINTRAY_API_KEY
+        }
+    }
     android.libraryVariants.matching { it.buildType.name == 'release' }.all {
         def stem = name.capitalize()
         def hardDeps = variantData.variantDependency.apiElements.allDependencies
@@ -44,11 +52,11 @@ publishing {
             artifact task("jar${stem}Sources", type: Jar, group: 'publishing') {
                 classifier 'sources'
                 from javaCompile.source
+                from android.sourceSets.main.java.srcDirs
             }
 
             pom.withXml {
-                def contents = asNode().children().last()
-                contents + node {
+                asNode().children().last() + node {
                     name 'Android Arch Kotlin Extensions'
                     description 'Kotlin extensions for Android architecture components'
                     url 'https://github.com/monzee/kt-arch'

@@ -11,11 +11,20 @@ import android.arch.lifecycle.LifecycleOwner
  */
 
 
-inline fun LifecycleOwner.onStateChange(crossinline block: (Lifecycle.Event) -> Unit) {
+class LifecycleScope(val current: Lifecycle.Event) {
+    inline operator fun Lifecycle.Event.invoke(block: () -> Unit) {
+        if (this === current) block()
+    }
+}
+
+
+inline fun LifecycleOwner.untilDestroyed(
+    crossinline block: LifecycleScope.(LifecycleOwner) -> Unit
+) {
     lifecycle.addObserver(object : GenericLifecycleObserver {
         override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-            block(event)
-            if (event == Lifecycle.Event.ON_DESTROY) {
+            LifecycleScope(event).block(source)
+            if (event === Lifecycle.Event.ON_DESTROY) {
                 source.lifecycle.removeObserver(this)
             }
         }
@@ -23,11 +32,11 @@ inline fun LifecycleOwner.onStateChange(crossinline block: (Lifecycle.Event) -> 
 }
 
 
-inline fun LifecycleOwner.onStateChangeUnmanaged(
-        crossinline block: (Lifecycle.Event) -> Unit
+inline fun LifecycleOwner.onStateChange(
+    crossinline block: LifecycleScope.(LifecycleOwner) -> Unit
 ): LifecycleObserver {
-    val observer = GenericLifecycleObserver { _, event ->
-        block(event)
+    val observer = GenericLifecycleObserver { source, event ->
+        LifecycleScope(event).block(source)
     }
     lifecycle.addObserver(observer)
     return observer
